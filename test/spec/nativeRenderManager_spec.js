@@ -1,4 +1,5 @@
 import { newNativeRenderManager } from 'src/nativeRenderManager';
+import * as nam  from 'src/nativeAssetManager';
 import { expect } from 'chai';
 import { mocks } from 'test/helpers/mocks';
 import { merge } from 'lodash';
@@ -22,6 +23,17 @@ describe('nativeRenderManager', function () {
   describe('load renderNativeAd', function () {
     let mockWin;
     let consoleWarn;
+    let assetManagerStub;
+
+    before(function() {
+      assetManagerStub = sinon.stub(nam, 'newNativeAssetManager').callsFake(() => {
+        return {
+          loadAssets: (adId, callback) => {
+            callback();
+          }
+        }
+      });
+    });
 
     let tagData = {
       pubUrl: 'http://example.com',
@@ -36,20 +48,26 @@ describe('nativeRenderManager', function () {
 
     afterEach(function () {
       consoleWarn.restore();
+      assetManagerStub.resetHistory();
     });
 
-    it('should verify the postMessage for impression trackers was executed', function() {
-      mockWin.document.getElementsByClassName = () => [{
-        attributes: {
-          pbAdId: {
-            value: 'ad123'
-          }
+    after(function() {
+      assetManagerStub.restore();
+    });
+
+    it("should verify the postMessage for impression trackers was executed", function () {
+      mockWin.document.getElementsByClassName = () => [
+        {
+          attributes: {
+            pbAdId: {
+              value: "ad123",
+            },
+          },
+          addEventListener: (type, listener, capture) => {},
         },
-        addEventListener: (type, listener, capture) => {
-        },
-      }];
+      ];
       let nativeTracker = new newNativeRenderManager(mockWin);
-      nativeTracker.renderNativeAd(tagData);
+      nativeTracker.renderNativeAd(mockWin.document, tagData);
 
       expect(mockWin.parent.postMessage.callCount).to.equal(1);
       let postMessageTargetDomain = mockWin.parent.postMessage.args[0][1];
@@ -76,12 +94,12 @@ describe('nativeRenderManager', function () {
       }];
 
       let nativeTracker = new newNativeRenderManager(mockWin);
-      nativeTracker.renderNativeAd(tagData);
+      nativeTracker.renderNativeAd(mockWin.document, tagData);
 
       expect(mockWin.parent.postMessage.callCount).to.equal(2);
 
       let postMessageTargetDomain = mockWin.parent.postMessage.args[0][1];
-      let postMessageContents = mockWin.parent.postMessage.args[0][0];
+      let postMessageContents = mockWin.parent.postMessage.args[1][0];
       let rawPostMessage = JSON.parse(postMessageContents);
 
       expect(rawPostMessage.message).to.exist.and.to.equal("Prebid Native");

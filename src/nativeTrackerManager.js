@@ -3,12 +3,13 @@
  */
 import { parseUrl, triggerPixel, transformAuctionTargetingData } from './utils';
 import { newNativeAssetManager } from './nativeAssetManager';
+import {prebidMessenger} from './messaging.js';
 
 const AD_ANCHOR_CLASS_NAME = 'pb-click';
 const AD_DATA_ADID_ATTRIBUTE = 'pbAdId';
 
 export function newNativeTrackerManager(win) {
-  let publisherDomain;
+  let sendMessage;
 
   function findAdElements(className) {
     let adElements = win.document.getElementsByClassName(className);
@@ -63,17 +64,18 @@ export function newNativeTrackerManager(win) {
         message.action = 'click';
       }
 
-      win.parent.postMessage(JSON.stringify(message), publisherDomain);
+      sendMessage(message);
     }
   }
 
   // START OF MAIN CODE
   let startTrackers = function (dataObject) {
     const targetingData = transformAuctionTargetingData(dataObject);
-    const nativeAssetManager = newNativeAssetManager(window);
+    sendMessage = prebidMessenger(targetingData.pubUrl, win);
+    const nativeAssetManager = newNativeAssetManager(window, targetingData.pubUrl);
 
     if (targetingData && targetingData.env === 'mobile-app') {
-      let cb = function({clickTrackers, impTrackers} = {}) {
+      let cb = function({clickTrackers, impTrackers, eventtrackers} = {}) {
         function loadMobileClickTrackers(clickTrackers) {
           (clickTrackers || []).forEach(triggerPixel);
         }
@@ -81,12 +83,21 @@ export function newNativeTrackerManager(win) {
         attachClickListeners(false, boundedLoadMobileClickTrackers);
 
         (impTrackers || []).forEach(triggerPixel);
+        
+        // fire impression IMG trackers
+        eventtrackers
+          .filter(tracker => tracker.event === 1 && tracker.method === 1)
+          .map(tracker => tracker.url)
+          .forEach(triggerPixel);
+
+        // fire impression JS trackers
+        eventtrackers
+          .filter(tracker => tracker.event === 1 && tracker.method === 2)
+          .map(tracker => tracker.url)
+          .forEach(trackerUrl => loadScript(document, trackerUrl));
       }
       nativeAssetManager.loadMobileAssets(targetingData, cb);
     } else {
-      let parsedUrl = parseUrl(targetingData && targetingData.pubUrl);
-      publisherDomain = parsedUrl.protocol + '://' + parsedUrl.host;
-
       let adElements = findAdElements(AD_ANCHOR_CLASS_NAME);
 
       nativeAssetManager.loadAssets(
