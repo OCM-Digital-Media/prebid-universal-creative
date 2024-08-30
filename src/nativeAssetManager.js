@@ -413,8 +413,14 @@ export function newNativeAssetManager(win, nativeTag, mkMessenger = prebidMessen
     callback && callback();
     win.removeEventListener('message', replaceAssets);
     stopListening();
-    const resize = () => requestHeightResize(bid.adId, (document.body.clientHeight || document.body.offsetHeight), document.body.clientWidth);
-    document.readyState === 'complete' ? resize() : window.onload = resize;
+    const resize = () => { requestHeightResize(bid.adId, (document.body.clientHeight || document.body.offsetHeight), document.body.clientWidth) };
+    document.readyState === 'complete' ? resize() : window.onload = resize();
+    let allImages = win.document.getElementsByTagName('img');
+    Array.from(allImages).forEach((img) => {
+      img.addEventListener('load', (e) => {
+        resize();
+      });
+    })
 
     if (typeof window.postRenderAd === 'function') {
       window.postRenderAd(bid);
