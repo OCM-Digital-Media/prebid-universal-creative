@@ -9,9 +9,9 @@ Prebid Universal Creative is a javascript api to render multiple formats. This f
  
 ## Usage
 
-You can find a detailed explanations on the [Prebid Universal Creative](http://prebid.org/overview/prebid-universal-creative.html) and [AdOps - Add Creative](http://prebid.org/adops/step-by-step.html#step-2-add-a-creative) pages.
+You can find a detailed explanations on the [Prebid Universal Creative](https://docs.prebid.org/overview/prebid-universal-creative.html) and [AdOps - Add Creative](https://docs.prebid.org/adops/setting-up-prebid-with-the-appnexus-ad-server.html#step-3-add-creatives) pages.
 
-> **important:** If you’re using the `Send All Bids` scenario (where every bidder has a separate order), the creative and targeting will be different from the example shown here. See [Send All Bids](http://prebid.org/adops/send-all-bids-adops.html) for details.
+> **important:** If you’re using the `Send All Bids` scenario (where every bidder has a separate order), the creative and targeting will be different from the example shown here. See [Send All Bids](https://docs.prebid.org/adops/send-all-vs-top-price.html#send-all-bids) for details.
 
 ```html
 <script src = "https://cdn.jsdelivr.net/npm/prebid-universal-creative@latest/dist/%%PATTERN:hb_format%%.js"></script>
@@ -23,6 +23,8 @@ You can find a detailed explanations on the [Prebid Universal Creative](http://p
   ucTagData.hbPb = "%%PATTERN:hb_pb%%";
   ucTagData.hbFormat = "%%PATTERN:hb_format%%";
   ucTagData.adId = "%%PATTERN:hb_adid%%";
+  // if you're using GAM and want to track outbound clicks on native ads you can add this line
+  ucTagData.clickUrlUnesc = "%%CLICK_URL_UNESC%%";
   ucTagData.requestAllAssets = true;
 
   try {
