@@ -60,17 +60,23 @@ const DEFAULT_CACHE_HOST = 'prebid.adnxs.com';
 const DEFAULT_CACHE_PATH = '/pbc/v1/cache';
 
 const CLICK_URL_UNESC = `%%CLICK_URL_UNESC%%`;
+const PATTERN_HB_AD_ID = `%%PATTERN:hb_adid%%`;
 
 let clickUrlUnesc = '';
+let hbAdId = '';
 
 export function newNativeAssetManager(win, nativeTag, mkMessenger = prebidMessenger) {
 
-    // clickUrlUnesc contains the url to track clicks in GAM. we check if it
-    // has been transformed, by GAM, in an URL.
-    // if CLICK_URL_UNESC is the string "%%CLICK_URL_UNESC%%", we're not in GAM.
-    if (nativeTag.clickUrlUnesc && nativeTag.clickUrlUnesc !== CLICK_URL_UNESC) {
-      clickUrlUnesc = nativeTag.clickUrlUnesc;
-    }
+  // clickUrlUnesc contains the url to track clicks in GAM. we check if it
+  // has been transformed, by GAM, in an URL.
+  // if CLICK_URL_UNESC is the string "%%CLICK_URL_UNESC%%", we're not in GAM.
+  if (nativeTag.clickUrlUnesc && nativeTag.clickUrlUnesc !== CLICK_URL_UNESC) {
+    clickUrlUnesc = nativeTag.clickUrlUnesc;
+  }
+  if (nativeTag.adId && nativeTag.adId !== PATTERN_HB_AD_ID) {
+    hbAdId = nativeTag.adId;
+  }
+
   const {pubUrl} = nativeTag;
 
   const sendMessage = mkMessenger(pubUrl, win);
@@ -290,9 +296,7 @@ export function newNativeAssetManager(win, nativeTag, mkMessenger = prebidMessen
    */
   function replaceAssets(event) {
     try {
-
       var data = {};
-
       try {
         data = JSON.parse(event.data);
       } catch (e) {
@@ -311,6 +315,7 @@ export function newNativeAssetManager(win, nativeTag, mkMessenger = prebidMessen
     if (data.message === 'assetResponse') {
       // add GAM %%CLICK_URL_UNESC%% to the data object to be eventually used in renderers
       data.clickUrlUnesc = clickUrlUnesc;
+      data.hbAdId = hbAdId;
       const body = win.document.body.innerHTML;
       const head = win.document.head.innerHTML;
 
@@ -325,7 +330,6 @@ export function newNativeAssetManager(win, nativeTag, mkMessenger = prebidMessen
         })(callback);
 
         if (head) win.document.head.innerHTML = replace(head, data);
-
 
         data.assets = data.assets || [];
         let renderPayload = data.assets;
@@ -358,6 +362,7 @@ export function newNativeAssetManager(win, nativeTag, mkMessenger = prebidMessen
           renderAd(newHtml, data);
         } else {
           const newHtml = replace(body, data);
+          console.log('newHtml', newHtml);
 
           win.document.body.innerHTML = newHtml;
           callback && callback();
@@ -408,6 +413,7 @@ export function newNativeAssetManager(win, nativeTag, mkMessenger = prebidMessen
 
     //substitute CLICK_URL_UNESC with actual value
     html = html.replaceAll(CLICK_URL_UNESC, bid.clickUrlUnesc || "");
+    html = html.replaceAll(PATTERN_HB_AD_ID, bid.hbAdId || "");
 
     win.document.body.innerHTML += html;
     callback && callback();

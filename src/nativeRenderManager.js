@@ -23,9 +23,7 @@ export function newNativeRenderManager(win, mkMessenger = prebidMessenger, asset
 
         try {
             const nativeAssetManager = assetMgr(window, nativeTag);
-
             if (nativeTag.adId != null) {
-
                 if (nativeTag.hasOwnProperty('rendererUrl') && !nativeTag.rendererUrl.match(/##.*##/i)) {
                     const scr = doc.createElement('SCRIPT');
                     scr.src = nativeTag.rendererUrl,
@@ -34,6 +32,7 @@ export function newNativeRenderManager(win, mkMessenger = prebidMessenger, asset
                 }
                 nativeAssetManager.loadAssets(nativeTag.adId, () => {
                     signalResult(nativeTag.adId, true);
+
                 }, (e) => {
                     signalResult(nativeTag.adId, false, {reason: 'exception', message: e.message});
                 });

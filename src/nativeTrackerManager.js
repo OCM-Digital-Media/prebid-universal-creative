@@ -1,7 +1,7 @@
 /*
  * Script to handle firing impression and click trackers from native teamplates
  */
-import { parseUrl, triggerPixel, transformAuctionTargetingData } from './utils';
+import { triggerPixel, transformAuctionTargetingData } from './utils';
 import { newNativeAssetManager } from './nativeAssetManager';
 import {prebidMessenger} from './messaging.js';
 
@@ -11,9 +11,31 @@ const AD_DATA_ADID_ATTRIBUTE = 'pbAdId';
 export function newNativeTrackerManager(win) {
   let sendMessage;
 
+  function contentLoaded() {
+    return new Promise(resolve => {
+      const listener = () => {
+        if (/^(?:loaded|interactive|complete)$/.test(document.readyState)) {
+          const doc_body = window.document.body || window.document.getElementsByTagName("body")[0];
+          if (doc_body) {
+            document.removeEventListener('readystatechange', listener);
+          }
+
+          resolve();
+        }
+      };
+
+      document.addEventListener('readystatechange', listener);
+
+      listener();
+    })
+  }
+
   function findAdElements(className) {
-    let adElements = win.document.getElementsByClassName(className);
-    return adElements || [];
+    let elements = [];
+    contentLoaded().then(() => {
+      elements = win.document.getElementsByClassName(className);
+      return elements;
+    });
   }
 
   function readAdIdFromElement(adElements) {
@@ -54,6 +76,7 @@ export function newNativeTrackerManager(win) {
   }
 
   function fireTracker(adId, action) {
+    console.log('fireTracker', adId, action);
     if (adId === '') {
       console.warn('Prebid tracking event was missing \'adId\'.  Was adId macro set in the HTML attribute ' + AD_DATA_ADID_ATTRIBUTE + 'on the ad\'s anchor element');
     } else {
@@ -71,6 +94,7 @@ export function newNativeTrackerManager(win) {
   // START OF MAIN CODE
   let startTrackers = function (dataObject) {
     const targetingData = transformAuctionTargetingData(dataObject);
+    console.log('startTrackers targetingData', targetingData);
     sendMessage = prebidMessenger(targetingData.pubUrl, win);
     const nativeAssetManager = newNativeAssetManager(window, targetingData.pubUrl);
 
@@ -99,6 +123,8 @@ export function newNativeTrackerManager(win) {
       nativeAssetManager.loadMobileAssets(targetingData, cb);
     } else {
       let adElements = findAdElements(AD_ANCHOR_CLASS_NAME);
+
+      console.log('adElements', adElements);
 
       nativeAssetManager.loadAssets(
         readAdIdFromElement(adElements),
